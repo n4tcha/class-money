@@ -1,8 +1,37 @@
-<html>
-<headder>
-</headder>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เข้าสู่ระบบ</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
 <body>
-hi ai
+  <div class="container">
+    <div class="card">
+      <h1 id="form-title">เข้าสู่ระบบ</h1>
 
+      <div id="message" class="message" style="display:none;"></div>
+
+      <form id="auth-form">
+        <label for="email">อีเมล</label>
+        <input type="email" id="email" required placeholder="you@example.com">
+
+        <label for="password">รหัสผ่าน</label>
+        <input type="password" id="password" required placeholder="อย่างน้อย 6 ตัวอักษร" minlength="6">
+
+        <button type="submit" id="submit-btn">เข้าสู่ระบบ</button>
+      </form>
+
+      <p class="toggle-text">
+        <span id="toggle-mode-text">ยังไม่มีบัญชี?</span>
+        <a href="#" id="toggle-mode-link">สมัครสมาชิก</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="supabaseClient.js"></script>
+  <script src="auth.js"></script>
 </body>
 </html>
