@@ -6,6 +6,8 @@ const submitBtn = document.getElementById('submit-btn');
 const toggleModeText = document.getElementById('toggle-mode-text');
 const toggleModeLink = document.getElementById('toggle-mode-link');
 const messageBox = document.getElementById('message');
+const fullnameField = document.getElementById('fullname-field');
+const fullNameInput = document.getElementById('full-name');
 
 function showMessage(text, type) {
   messageBox.textContent = text;
@@ -28,11 +30,15 @@ toggleModeLink.addEventListener('click', (e) => {
     submitBtn.textContent = 'เข้าสู่ระบบ';
     toggleModeText.textContent = 'ยังไม่มีบัญชี?';
     toggleModeLink.textContent = 'สมัครสมาชิก';
+    fullnameField.style.display = 'none';
+    fullNameInput.required = false;
   } else {
     formTitle.textContent = 'สมัครสมาชิก';
     submitBtn.textContent = 'สมัครสมาชิก';
     toggleModeText.textContent = 'มีบัญชีอยู่แล้ว?';
     toggleModeLink.textContent = 'เข้าสู่ระบบ';
+    fullnameField.style.display = 'block';
+    fullNameInput.required = true;
   }
 });
 
@@ -73,9 +79,16 @@ form.addEventListener('submit', async (e) => {
 
     } else {
       // สมัครสมาชิก
+      const fullName = fullNameInput.value.trim();
+
       const { data, error } = await supabaseClient.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
       });
 
       if (error) throw error;
@@ -87,6 +100,8 @@ form.addEventListener('submit', async (e) => {
       submitBtn.textContent = 'เข้าสู่ระบบ';
       toggleModeText.textContent = 'ยังไม่มีบัญชี?';
       toggleModeLink.textContent = 'สมัครสมาชิก';
+      fullnameField.style.display = 'none';
+      fullNameInput.required = false;
       form.reset();
     }
   } catch (err) {
