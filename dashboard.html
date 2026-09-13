@@ -261,7 +261,7 @@
       <div class="stat-card">
         <div class="stat-icon blue">👥</div>
         <div class="stat-label">จำนวนนักเรียนทั้งหมด</div>
-        <div class="stat-value">32 คน</div>
+        <div class="stat-value" id="stat-total-students">กำลังโหลด...</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon green">✅</div>
@@ -336,6 +336,22 @@
     window.location.href = LOGIN_PAGE_URL;
   }
 
+  // ดึงจำนวนนักเรียนทั้งหมดจริงจากตาราง students
+  async function fetchTotalStudents() {
+    const statEl = document.getElementById('stat-total-students');
+    const { count, error } = await supabaseClient
+      .from('students')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) {
+      console.error('ดึงจำนวนนักเรียนไม่สำเร็จ:', error);
+      statEl.textContent = '-';
+      return;
+    }
+
+    statEl.textContent = `${count ?? 0} คน`;
+  }
+
   // เช็ค session จริง -> ดึง role + ชื่อจริงจากตาราง profiles -> อัปเดตหน้าจอ
   async function checkAccessAndInit() {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -356,6 +372,7 @@
       console.error('ดึงข้อมูล profile ไม่สำเร็จ:', error);
       greetingTitle.textContent = `สวัสดีค่ะ ${session.user.email}`;
       applyRole('user'); // ดึง role ไม่ได้ ให้ถือว่าไม่มีสิทธิ์ ปลอดภัยไว้ก่อน
+      fetchTotalStudents();
       return;
     }
 
@@ -364,6 +381,7 @@
       : `สวัสดีค่ะ ${session.user.email}`;
 
     applyRole(profile.role);
+    fetchTotalStudents();
   }
 
   checkAccessAndInit();
