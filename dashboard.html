@@ -1,166 +1,270 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบจัดการเก็บเงินห้องเรียน</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<title>จัดการเก็บเงิน - ห้องเรียน</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', 'Segoe UI', sans-serif;
+    background: #f3f4f6;
+    color: #1f2937;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    background: #0f1b3d;
+    color: #cbd5e1;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar-header .icon-box {
+    width: 34px;
+    height: 34px;
+    background: #dc2626;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .sidebar-header .title {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 15px;
+    line-height: 1.3;
+  }
+  .sidebar-header .subtitle {
+    font-size: 12px;
+    color: #94a3b8;
+  }
+  .nav {
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #cbd5e1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .nav-item:hover {
+    background: rgba(255,255,255,0.06);
+  }
+  .nav-item.active {
+    background: #3b6fe0;
+    color: #ffffff;
+    font-weight: 600;
+  }
+  .nav-item .emoji {
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+  }
+  .nav-item.new-item {
+    animation: highlightFade 2.5s ease-out 1;
+  }
+  @keyframes highlightFade {
+    0% { background: rgba(59,111,224,0.35); }
+    100% { background: transparent; }
+  }
+
+  /* Main content */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    background: #ffffff;
+    padding: 18px 32px;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: 700;
+    font-size: 16px;
+    color: #0f1b3d;
+  }
+  .content {
+    padding: 28px 32px;
+  }
+  .welcome {
+    background: #eef2f9;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 22px;
+  }
+  .welcome h2 {
+    font-size: 19px;
+    color: #0f1b3d;
+    margin-bottom: 4px;
+  }
+  .welcome p {
+    font-size: 13px;
+    color: #64748b;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .stat-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid #eef0f3;
+  }
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+  }
+  .stat-icon.blue { background: #e0e7ff; }
+  .stat-icon.green { background: #d1fae5; }
+  .stat-icon.red { background: #fee2e2; }
+  .stat-icon.yellow { background: #fef3c7; }
+  .stat-label { font-size: 12.5px; color: #64748b; }
+  .stat-value { font-size: 22px; font-weight: 700; color: #0f1b3d; }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 18px;
+  }
+  .panel {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #eef0f3;
+  }
+  .panel h3 {
+    font-size: 14.5px;
+    color: #0f1b3d;
+    margin-bottom: 16px;
+  }
+  .donut-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: #94a3b8; font-weight: 500; padding-bottom: 10px; font-size: 12.5px; }
+  td { padding: 10px 0; border-top: 1px solid #f1f3f5; color: #334155; }
+  .badge {
+    background: #d1fae5;
+    color: #059669;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+</style>
 </head>
-<body class="app-body">
-  <div class="app-shell">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <span class="sidebar-brand-icon">🏫</span>
-        <div>
-          <div class="sidebar-brand-title">จัดการเก็บเงิน</div>
-          <div class="sidebar-brand-sub">ห้องเรียน</div>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="icon-box">🏫</div>
+    <div>
+      <div class="title">จัดการเก็บเงิน</div>
+      <div class="subtitle">ห้องเรียน</div>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active"><span class="emoji">🏠</span> หน้าหลัก</div>
+    <div class="nav-item"><span class="emoji">👤</span> รายชื่อนักเรียน</div>
+    <div class="nav-item"><span class="emoji">📝</span> บันทึกการชำระเงิน</div>
+    <div class="nav-item new-item"><span class="emoji">🕒</span> ประวัติการชำระเงิน</div>
+    <div class="nav-item"><span class="emoji">📄</span> บันทึกการเบิกเงิน</div>
+    <div class="nav-item"><span class="emoji">💰</span> สรุปยอดเงิน</div>
+    <div class="nav-item"><span class="emoji">⚙️</span> ตั้งค่า</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">หน้าหลัก</div>
+  <div class="content">
+    <div class="welcome">
+      <h2>สวัสดีค่ะ คุณนายสมชาย สาน1</h2>
+      <p>ระบบจัดการการเก็บเงินภายในห้องเรียน</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-icon blue">👥</div>
+        <div class="stat-label">จำนวนนักเรียนทั้งหมด</div>
+        <div class="stat-value">32 คน</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-label">ชำระแล้ว</div>
+        <div class="stat-value">28 คน</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">❗</div>
+        <div class="stat-label">ยังไม่ชำระ</div>
+        <div class="stat-value">4 คน</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon yellow">💳</div>
+        <div class="stat-label">ยอดเงินรวม</div>
+        <div class="stat-value">8,400 บาท</div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <h3>สถานะการชำระเงิน</h3>
+        <div class="donut-wrap">
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            <circle cx="90" cy="90" r="70" fill="none" stroke="#fde2e2" stroke-width="20"/>
+            <circle cx="90" cy="90" r="70" fill="none" stroke="#16a34a" stroke-width="20"
+              stroke-dasharray="384.8" stroke-dashoffset="48.1" stroke-linecap="round"
+              transform="rotate(-90 90 90)"/>
+            <text x="90" y="86" text-anchor="middle" font-size="22" font-weight="700" fill="#0f1b3d">87.5%</text>
+            <text x="90" y="106" text-anchor="middle" font-size="12" fill="#64748b">ชำระแล้ว</text>
+          </svg>
         </div>
       </div>
-
-      <nav class="sidebar-nav">
-        <a href="dashboard.html" class="sidebar-link active" data-page="home">
-          <span class="sidebar-link-icon">🏠</span> หน้าหลัก
-        </a>
-        <a href="#" class="sidebar-link" data-page="students">
-          <span class="sidebar-link-icon">👥</span> รายชื่อนักเรียน
-        </a>
-        <a href="#" class="sidebar-link" data-page="record">
-          <span class="sidebar-link-icon">📝</span> บันทึกการชำระเงิน
-        </a>
-        <a href="#" class="sidebar-link" data-page="withdraw">
-          <span class="sidebar-link-icon">📄</span> บันทึกการเบิกเงิน
-        </a>
-        <a href="#" class="sidebar-link" data-page="summary">
-          <span class="sidebar-link-icon">💰</span> สรุปยอดเงิน
-        </a>
-        <a href="#" class="sidebar-link" data-page="settings">
-          <span class="sidebar-link-icon">⚙️</span> ตั้งค่า
-        </a>
-      </nav>
-
-      <button class="sidebar-logout" id="logout-btn">
-        <span class="sidebar-link-icon">🚪</span> ออกจากระบบ
-      </button>
-    </aside>
-
-    <!-- Main content -->
-    <main class="main-content">
-      <header class="topbar">
-        <div class="topbar-title">หน้าหลัก</div>
-        <div class="topbar-user">
-          <span id="user-avatar" class="topbar-avatar">👤</span>
-          <span id="user-name-label">กำลังโหลด...</span>
-        </div>
-      </header>
-
-      <section class="content-body">
-        <div class="greeting-block">
-          <h1 id="greeting-title">สวัสดีค่ะ</h1>
-          <p id="greeting-sub" class="greeting-sub">ระบบจัดการการเก็บเงินภายในห้องเรียน</p>
-        </div>
-
-        <!-- Stat cards -->
-        <div class="stat-grid">
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-blue">👥</div>
-            <div class="stat-label">จำนวนนักเรียนทั้งหมด</div>
-            <div class="stat-value" id="stat-total">32 คน</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-green">✅</div>
-            <div class="stat-label">ชำระแล้ว</div>
-            <div class="stat-value" id="stat-paid">28 คน</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-red">❗</div>
-            <div class="stat-label">ยังไม่ชำระ</div>
-            <div class="stat-value" id="stat-unpaid">4 คน</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-purple">💳</div>
-            <div class="stat-label">ยอดเงินรวม</div>
-            <div class="stat-value" id="stat-amount">8,400 บาท</div>
-          </div>
-        </div>
-
-        <!-- Chart + table -->
-        <div class="bottom-grid">
-          <div class="panel">
-            <h3 class="panel-title">สถานะการชำระเงิน</h3>
-            <div class="donut-wrap">
-              <div class="donut" id="donut-chart" style="--pct: 87.5;">
-                <div class="donut-center">
-                  <div class="donut-pct" id="donut-pct">87.5%</div>
-                  <div class="donut-caption">ชำระแล้ว</div>
-                </div>
-              </div>
-            </div>
-            <div class="donut-legend">
-              <div class="legend-item"><span class="legend-dot legend-green"></span> ชำระแล้ว <strong id="legend-paid">28 คน</strong></div>
-              <div class="legend-item"><span class="legend-dot legend-red"></span> ยังไม่ชำระ <strong id="legend-unpaid">4 คน</strong></div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h3 class="panel-title">รายการล่าสุด</h3>
-            <table class="recent-table">
-              <thead>
-                <tr>
-                  <th>ชื่อ-สกุล</th>
-                  <th>รายการ</th>
-                  <th>จำนวนเงิน</th>
-                  <th>สถานะ</th>
-                  <th>วันที่</th>
-                </tr>
-              </thead>
-              <tbody id="recent-table-body">
-                <!-- placeholder rows, replace later with real data -->
-                <tr>
-                  <td>นภัสร วิลัย</td>
-                  <td>ค่ากิจกรรม</td>
-                  <td>100</td>
-                  <td><span class="status-pill status-paid">ชำระแล้ว</span></td>
-                  <td>10 ก.ย. 2568</td>
-                </tr>
-                <tr>
-                  <td>ธนวินท์ ศรีทอง</td>
-                  <td>ค่ากิจกรรม</td>
-                  <td>100</td>
-                  <td><span class="status-pill status-paid">ชำระแล้ว</span></td>
-                  <td>10 ก.ย. 2568</td>
-                </tr>
-                <tr>
-                  <td>นภาวรินทร์ แก้วใส</td>
-                  <td>ค่ากิจกรรม</td>
-                  <td>100</td>
-                  <td><span class="status-pill status-paid">ชำระแล้ว</span></td>
-                  <td>9 ก.ย. 2568</td>
-                </tr>
-                <tr>
-                  <td>กิติพงศ์ พรมนา</td>
-                  <td>ค่ากิจกรรม</td>
-                  <td>100</td>
-                  <td><span class="status-pill status-unpaid">ยังไม่ชำระ</span></td>
-                  <td>9 ก.ย. 2568</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <p class="placeholder-note">
-          * ตัวเลขและรายการด้านบนเป็นข้อมูลตัวอย่าง รอสร้างตารางนักเรียน/การชำระเงินจริงในฐานข้อมูล
-        </p>
-      </section>
-    </main>
+      <div class="panel">
+        <h3>รายการล่าสุด</h3>
+        <table>
+          <tr><th>ชื่อ-สกุล</th><th>รายการ</th><th>จำนวนเงิน</th><th>สถานะ</th><th>วันที่</th></tr>
+          <tr><td>นภัสร วิลัย</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
+          <tr><td>ธนวินท์ ศรีทอง</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
+          <tr><td>นาวารินทร์ แก้วใส</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>9 ก.ย. 2568</td></tr>
+        </table>
+      </div>
+    </div>
   </div>
+</div>
 
-  <script src="supabaseClient.js"></script>
-  <script src="dashboard.js"></script>
 </body>
 </html>
