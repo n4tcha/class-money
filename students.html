@@ -167,9 +167,22 @@
   }
 
   .empty-row td { text-align: center; color: #5b6685; padding: 30px 0; }
+  .loading-row td { text-align: center; color: #7c8bb5; padding: 30px 0; }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #161d33; color: #e5e7eb; border: 1px solid #2a3352;
+    border-radius: 10px; padding: 12px 18px; font-size: 13.5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    display: none; z-index: 50;
+  }
+  .toast.error { border-color: #7a2e2e; color: #fca5a5; }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<div class="toast" id="toast"></div>
 
 <div class="sidebar">
   <div class="sidebar-header">
@@ -284,66 +297,69 @@
 </div>
 
 <script>
-  // ---------- Seed data (จาก Excel ห้อง 5-4) ----------
-  let students = [
-    {no:1,student_id:'13911',citizen_id:'1102004109502',full_name:'นายกมลชัย วงค์ธรรม',nickname:'แบงค์',phone:'0800390506'},
-    {no:2,student_id:'15083',citizen_id:'1349901679708',full_name:'นายกฤตเมธ  สุขอุทัย',nickname:'ไดมอนด์',phone:'0971616949'},
-    {no:3,student_id:'13912',citizen_id:'1101801580992',full_name:'นายกฤษณะ จินดาศรี',nickname:'ไนท์ฺ',phone:'0802696736'},
-    {no:4,student_id:'13913',citizen_id:'1179900535062',full_name:'นายเกื้อกูล ม่วงรัตน์',nickname:'ก้อง',phone:'0982272462'},
-    {no:5,student_id:'15082',citizen_id:'1849300110536',full_name:'นายคมกฤต สมบัติเเก้ว',nickname:'ซิบโป้',phone:'0980107731'},
-    {no:6,student_id:'11830',citizen_id:'1139600547995',full_name:'นายชนาภัทร เเดงด้วง',nickname:'ตัส',phone:'0627260169'},
-    {no:8,student_id:'11831',citizen_id:'1100704185421',full_name:'นายชวกรณ์ บุรณศิริ',nickname:'ออโต้',phone:'0937120331'},
-    {no:9,student_id:'11908',citizen_id:'1103000235334',full_name:'นายโชคชัย เเสนสุข',nickname:'เต้ย',phone:'0959698260'},
-    {no:10,student_id:'11964',citizen_id:'1139700086523',full_name:'นายณัฐกรณ์ สอนจิตร',nickname:'เพชร',phone:'0654160999'},
-    {no:11,student_id:'11991',citizen_id:'1139700083010',full_name:'นายณัฐพงษ์ ทับนิล',nickname:'สายน้ำ',phone:'0840018570'},
-    {no:12,student_id:'13916',citizen_id:'1104400072425',full_name:'นายธนกฤต สุวรรณพิบูลย์',nickname:'กาย',phone:'0828453779'},
-    {no:13,student_id:'11742',citizen_id:'1100704178246',full_name:'นายธนพล ตะราษี',nickname:'ตี๋',phone:'0934575902'},
-    {no:14,student_id:'11743',citizen_id:'1103400173352',full_name:'นายธนวัฒน์ ทรงวุฒิ',nickname:'ฟลุ๊ค',phone:'0624242647'},
-    {no:15,student_id:'11853',citizen_id:'1139600578459',full_name:'นายธนวัน บรรลุ',nickname:'เรน',phone:'0638398312'},
-    {no:16,student_id:'13917',citizen_id:'1469900851344',full_name:'นายธีรภัทร บุแก้ว',nickname:'ตูน',phone:'0954273470'},
-    {no:17,student_id:'13918',citizen_id:'1104200700538',full_name:'นายนรวัฒน์ แก้วนาพันธ์',nickname:'ปอนด์',phone:'0636753709'},
-    {no:18,student_id:'13919',citizen_id:'1139600570521',full_name:'นายนัทธวัฒน์ พยุงศักดิ์พาณิชย์',nickname:'เฟรม',phone:'0821411861'},
-    {no:19,student_id:'11892',citizen_id:'1139600570065',full_name:'นายนันทวัฒน์ ต่อต้น',nickname:'โม่',phone:'0805702652'},
-    {no:20,student_id:'13921',citizen_id:'1719300028971',full_name:'นายประเสริฐ เรือนใจดี',nickname:'เกมส์',phone:'0838259975'},
-    {no:21,student_id:'11812',citizen_id:'1139900629342',full_name:'นายพรชัย สนแก้ว',nickname:'กันต์',phone:'0646600055'},
-    {no:22,student_id:'13922',citizen_id:'1849902114211',full_name:'นายพีรพัฒน์ ทรงเสี่ยงชัย',nickname:'พี',phone:'0980870468'},
-    {no:23,student_id:'11814',citizen_id:'1139900620825',full_name:'นายวรายุทธ์ จิตนารี',nickname:'เก็ต',phone:'0829753368'},
-    {no:24,student_id:'13923',citizen_id:'1659902551842',full_name:'นายศิริมณฑล บุญมา',nickname:'ธันวา',phone:'0925323734'},
-    {no:25,student_id:'11767',citizen_id:'1139600532173',full_name:'นายศิษฐวิตร์ เปี่ยมสุคนธ์',nickname:'เอ็ม',phone:'0909452073'},
-    {no:26,student_id:'11837',citizen_id:'1139600555831',full_name:'นายเสฏฐพงศ์ เจริญนพกิจ',nickname:'บ๊อบ',phone:'0801650343'},
-    {no:27,student_id:'13925',citizen_id:'1349901620266',full_name:'นายอภิชน สุขสุข',nickname:'ยิ่งใหญ่',phone:'0845062716'},
-    {no:28,student_id:'13926',citizen_id:'1469900851352',full_name:'นายอัทรพล บุแก้ว',nickname:'ตาล',phone:'0926122060'},
-    {no:29,student_id:'13927',citizen_id:'1139800157732',full_name:'นายเอกบุรุษ พันธ์โนราช',nickname:'อินซ์',phone:'0826365184'},
-    {no:30,student_id:'13928',citizen_id:'1139600512199',full_name:'นางสาวณัชชา ม่วงงาม',nickname:'ข้าวหอม',phone:'0917128387'},
-    {no:31,student_id:'13929',citizen_id:'1560301495886',full_name:'นางสาวณัฐนิชา ทองริม',nickname:'นํ้าขิง',phone:'0806279193'},
-    {no:33,student_id:'13930',citizen_id:'1130201222946',full_name:'นางสาวพรธิตา ทับทิมทอง',nickname:'ปิ่น',phone:'0957121315'},
-    {no:34,student_id:'11753',citizen_id:'1139600562447',full_name:'นางสาวมณลิสา สงกลาง',nickname:'เหมย',phone:'0809399903'},
-    {no:35,student_id:'12176',citizen_id:'1139900638317',full_name:'นางสาวยุพารัตน์ ยาพรม',nickname:'เนย',phone:'0615184100'},
-    {no:36,student_id:'12187',citizen_id:'1110301505524',full_name:'นางสาววรินทร วงศ์ไชย',nickname:'คาราเมล',phone:'0826863425'},
-    {no:37,student_id:'11754',citizen_id:'1309903678768',full_name:'นางสาวศิรประภา แป้นทะเล',nickname:'พะแพง',phone:'0638610161'},
-    {no:38,student_id:'13931',citizen_id:'1104301217051',full_name:'นางสาวหนึ่งฤทัย วีระกุล',nickname:'ปุยนุ่น',phone:'0950569401'},
-    {no:39,student_id:'11756',citizen_id:'1139600533315',full_name:'นางสาวอรจิรา บุตรวงษ์',nickname:'มีนา',phone:'0944832277'},
-  ];
+  // =========================================================
+  // ตั้งค่าการเชื่อมต่อ Supabase
+  // หาได้จาก Supabase Dashboard > Project Settings > API
+  // Project URL และ anon public key เท่านั้น (ห้ามใช้ service_role key ที่นี่)
+  // =========================================================
+  const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
 
-  let editingId = null; // student_id currently being edited
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let students = [];      // ข้อมูลที่ดึงมาจากตาราง students ใน Supabase
+  let editingId = null;   // uuid (คอลัมน์ id) ของแถวที่กำลังแก้ไข อยู่
 
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function showToast(message, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.toggle('error', isError);
+    toast.style.display = 'block';
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  // ---------- ดึงข้อมูลจาก Supabase ----------
+  async function fetchStudents() {
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="5">กำลังโหลดข้อมูล...</td></tr>';
+
+    const { data, error } = await supabase
+      .from('students')
+      .select('id, no, student_id, citizen_id, full_name, nickname, phone')
+      .order('no', { ascending: true });
+
+    if (error) {
+      console.error(error);
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">โหลดข้อมูลไม่สำเร็จ: ' + escapeHtml(error.message) + '</td></tr>';
+      showToast('โหลดข้อมูลไม่สำเร็จ: ' + error.message, true);
+      return;
+    }
+
+    students = data || [];
+    renderTable();
   }
 
   function renderTable() {
     const q = document.getElementById('search-input').value.trim().toLowerCase();
     const tbody = document.getElementById('table-body');
     const filtered = students.filter(s =>
-      !q || s.full_name.toLowerCase().includes(q) || s.nickname.toLowerCase().includes(q) || s.student_id.includes(q)
-    ).sort((a,b) => a.no - b.no);
+      !q ||
+      (s.full_name || '').toLowerCase().includes(q) ||
+      (s.nickname || '').toLowerCase().includes(q) ||
+      (s.student_id || '').includes(q)
+    );
 
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="5">ไม่พบข้อมูลนักเรียน</td></tr>';
     } else {
       tbody.innerHTML = filtered.map(s => `
         <tr>
-          <td>${s.no}</td>
+          <td>${s.no ?? '-'}</td>
           <td>${escapeHtml(s.student_id)}</td>
           <td class="name-cell">
             <div class="full-name">${escapeHtml(s.full_name)}</div>
@@ -352,9 +368,9 @@
           <td>${escapeHtml(s.phone || '-')}</td>
           <td>
             <div class="actions-cell">
-              <button class="icon-btn edit" title="แก้ไข" onclick="editStudent('${s.student_id}')">✏️</button>
-              <button class="icon-btn history" title="ประวัติการชำระเงิน" onclick="viewHistory('${s.student_id}')">🕒</button>
-              <button class="icon-btn delete" title="ลบ" onclick="deleteStudent('${s.student_id}')">🗑️</button>
+              <button class="icon-btn edit" title="แก้ไข" onclick="editStudent('${s.id}')">✏️</button>
+              <button class="icon-btn history" title="ประวัติการชำระเงิน" onclick="viewHistory('${s.id}')">🕒</button>
+              <button class="icon-btn delete" title="ลบ" onclick="deleteStudent('${s.id}')">🗑️</button>
             </div>
           </td>
         </tr>
@@ -370,8 +386,9 @@
     ['f-no','f-student-id','f-citizen-id','f-fullname','f-nickname','f-phone'].forEach(id => document.getElementById(id).value = '');
   }
 
-  function submitForm() {
-    const no = parseInt(document.getElementById('f-no').value, 10);
+  // ---------- เพิ่ม / แก้ไข ----------
+  async function submitForm() {
+    const no = document.getElementById('f-no').value.trim();
     const student_id = document.getElementById('f-student-id').value.trim();
     const citizen_id = document.getElementById('f-citizen-id').value.trim();
     const full_name = document.getElementById('f-fullname').value.trim();
@@ -383,33 +400,56 @@
       return;
     }
 
-    if (editingId) {
-      const dup = students.find(s => s.student_id === student_id && s.student_id !== editingId);
-      if (dup) {
-        alert('เลขประจำตัวนักเรียนนี้ถูกใช้กับนักเรียนคนอื่นแล้ว');
-        return;
-      }
-      const idx = students.findIndex(s => s.student_id === editingId);
-      if (idx > -1) students[idx] = { no: no || students[idx].no, student_id, citizen_id, full_name, nickname, phone };
-    } else {
-      if (students.some(s => s.student_id === student_id)) {
-        alert('เลขประจำตัวนักเรียนนี้มีอยู่แล้วในระบบ');
-        return;
-      }
-      students.push({ no: no || (students.length + 1), student_id, citizen_id, full_name, nickname, phone });
-    }
+    const payload = {
+      no: no ? parseInt(no, 10) : null,
+      student_id,
+      citizen_id: citizen_id || null,
+      full_name,
+      nickname: nickname || null,
+      phone: phone || null,
+    };
 
-    resetForm();
-    renderTable();
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.disabled = true;
+
+    try {
+      if (editingId) {
+        // เช็คว่าเลขประจำตัวไปซ้ำกับนักเรียนคนอื่น (ที่ไม่ใช่แถวที่กำลังแก้) หรือไม่
+        const dup = students.find(s => s.student_id === student_id && s.id !== editingId);
+        if (dup) {
+          alert('เลขประจำตัวนักเรียนนี้ถูกใช้กับนักเรียนคนอื่นแล้ว');
+          return;
+        }
+        const { error } = await supabase.from('students').update(payload).eq('id', editingId);
+        if (error) throw error;
+        showToast('บันทึกการแก้ไขเรียบร้อยแล้ว');
+      } else {
+        const { error } = await supabase.from('students').insert(payload);
+        if (error) throw error;
+        showToast('เพิ่มนักเรียนใหม่เรียบร้อยแล้ว');
+      }
+      resetForm();
+      await fetchStudents();
+    } catch (err) {
+      console.error(err);
+      // เลขประจำตัวซ้ำในฐานข้อมูล (unique constraint) จะมาในรูป error code 23505
+      if (err.code === '23505') {
+        alert('เลขประจำตัวนักเรียนนี้มีอยู่แล้วในระบบ');
+      } else {
+        showToast('บันทึกไม่สำเร็จ: ' + err.message, true);
+      }
+    } finally {
+      submitBtn.disabled = false;
+    }
   }
 
-  function editStudent(student_id) {
-    const s = students.find(s => s.student_id === student_id);
+  function editStudent(id) {
+    const s = students.find(s => s.id === id);
     if (!s) return;
-    editingId = student_id;
+    editingId = id;
     document.getElementById('form-title').textContent = 'แก้ไขข้อมูลนักเรียน';
     document.getElementById('submit-btn').textContent = 'บันทึกการแก้ไข';
-    document.getElementById('f-no').value = s.no;
+    document.getElementById('f-no').value = s.no ?? '';
     document.getElementById('f-student-id').value = s.student_id;
     document.getElementById('f-citizen-id').value = s.citizen_id || '';
     document.getElementById('f-fullname').value = s.full_name;
@@ -418,17 +458,25 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function deleteStudent(student_id) {
-    const s = students.find(s => s.student_id === student_id);
+  // ---------- ลบ ----------
+  async function deleteStudent(id) {
+    const s = students.find(s => s.id === id);
     if (!s) return;
     if (!confirm(`ต้องการลบข้อมูลของ "${s.full_name}" ใช่หรือไม่?`)) return;
-    students = students.filter(s => s.student_id !== student_id);
-    if (editingId === student_id) resetForm();
-    renderTable();
+
+    const { error } = await supabase.from('students').delete().eq('id', id);
+    if (error) {
+      console.error(error);
+      showToast('ลบไม่สำเร็จ: ' + error.message, true);
+      return;
+    }
+    if (editingId === id) resetForm();
+    showToast('ลบข้อมูลเรียบร้อยแล้ว');
+    await fetchStudents();
   }
 
-  function viewHistory(student_id) {
-    const s = students.find(s => s.student_id === student_id);
+  function viewHistory(id) {
+    const s = students.find(s => s.id === id);
     alert(`ไปยังหน้า "ประวัติการชำระเงิน" ของ ${s.full_name} (เชื่อมกับเมนูประวัติการชำระเงินด้านซ้าย)`);
   }
 
@@ -436,7 +484,7 @@
   const LOGIN_PAGE_URL = 'login.html';
   function logout() {
     if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-    // ล้างข้อมูล session/token ที่เก็บไว้ตรงนี้ เช่น localStorage.removeItem('token')
+    // ถ้าใช้ Supabase Auth ให้เรียก supabase.auth.signOut() ก่อน redirect
     window.location.href = LOGIN_PAGE_URL;
   }
 
@@ -458,7 +506,7 @@
   }
 
   applyRole(document.getElementById('role-select').value);
-  renderTable();
+  fetchStudents();
 </script>
 
 </body>
