@@ -112,29 +112,6 @@
     background: rgba(248,113,113,0.1);
   }
 
-  /* Role switcher (demo only) */
-  .role-switch {
-    margin: 14px 10px 0;
-    padding: 10px 12px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 8px;
-    font-size: 12px;
-    color: #94a3b8;
-  }
-  .role-switch label {
-    display: block;
-    margin-bottom: 6px;
-  }
-  .role-switch select {
-    width: 100%;
-    background: #1a2853;
-    color: #ffffff;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 6px;
-    padding: 6px 8px;
-    font-size: 13px;
-  }
-
   /* Main content */
   .main {
     flex: 1;
@@ -232,6 +209,21 @@
     font-size: 12px;
     font-weight: 600;
   }
+
+  /* ---------- Responsive: จอแคบ/หน้าต่างไม่เต็มจอ ---------- */
+  @media (max-width: 880px) {
+    body { flex-direction: column; }
+    .sidebar {
+      width: 100%;
+      flex-direction: row;
+      overflow-x: auto;
+    }
+    .sidebar-header { display: none; }
+    .nav { flex-direction: row; padding: 10px; }
+    .nav-divider { display: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .panels { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -255,21 +247,13 @@
     <div class="nav-divider"></div>
     <div class="nav-item logout" onclick="logout()"><span class="emoji">🚪</span> ออกจากระบบ</div>
   </div>
-
-  <div class="role-switch">
-    <label for="role-select">มุมมองตามสิทธิ์ผู้ใช้ (ทดสอบ)</label>
-    <select id="role-select" onchange="applyRole(this.value)">
-      <option value="admin">Admin</option>
-      <option value="user">User ทั่วไป</option>
-    </select>
-  </div>
 </div>
 
 <div class="main">
   <div class="topbar">หน้าหลัก</div>
   <div class="content">
     <div class="welcome">
-      <h2>สวัสดีค่ะ คุณนายสมชาย สาน1</h2>
+      <h2 id="greeting-title">สวัสดีค่ะ</h2>
       <p>ระบบจัดการการเก็บเงินภายในห้องเรียน</p>
     </div>
 
@@ -323,6 +307,8 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
 <script>
   // แก้ path นี้ถ้าไฟล์หน้ารายชื่อนักเรียนอยู่คนละที่ เช่น 'pages/students.html'
   const STUDENTS_PAGE_URL = 'students.html';
@@ -344,14 +330,43 @@
     }
   }
 
-  function logout() {
+  async function logout() {
     if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-    // ล้างข้อมูล session/token ที่เก็บไว้ตรงนี้ เช่น localStorage.removeItem('token')
+    await supabaseClient.auth.signOut();
     window.location.href = LOGIN_PAGE_URL;
   }
 
-  // default view on load
-  applyRole(document.getElementById('role-select').value);
+  // เช็ค session จริง -> ดึง role + ชื่อจริงจากตาราง profiles -> อัปเดตหน้าจอ
+  async function checkAccessAndInit() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (!session) {
+      window.location.href = LOGIN_PAGE_URL;
+      return;
+    }
+
+    const greetingTitle = document.getElementById('greeting-title');
+    const { data: profile, error } = await supabaseClient
+      .from('profiles')
+      .select('role, full_name')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) {
+      console.error('ดึงข้อมูล profile ไม่สำเร็จ:', error);
+      greetingTitle.textContent = `สวัสดีค่ะ ${session.user.email}`;
+      applyRole('user'); // ดึง role ไม่ได้ ให้ถือว่าไม่มีสิทธิ์ ปลอดภัยไว้ก่อน
+      return;
+    }
+
+    greetingTitle.textContent = profile.full_name
+      ? `สวัสดีค่ะ คุณ${profile.full_name}`
+      : `สวัสดีค่ะ ${session.user.email}`;
+
+    applyRole(profile.role);
+  }
+
+  checkAccessAndInit();
 </script>
 </body>
 </html>
