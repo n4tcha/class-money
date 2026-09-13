@@ -87,6 +87,42 @@
     0% { background: rgba(59,111,224,0.35); }
     100% { background: transparent; }
   }
+  .nav-item.disabled {
+    color: #5b6685;
+    cursor: not-allowed;
+    opacity: 0.55;
+    position: relative;
+  }
+  .nav-item.disabled:hover {
+    background: transparent;
+  }
+  .nav-item.disabled .lock {
+    margin-left: auto;
+    font-size: 12px;
+  }
+
+  /* Role switcher (demo only) */
+  .role-switch {
+    margin: 14px 10px 0;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+  .role-switch label {
+    display: block;
+    margin-bottom: 6px;
+  }
+  .role-switch select {
+    width: 100%;
+    background: #1a2853;
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
 
   /* Main content */
   .main {
@@ -199,12 +235,20 @@
   </div>
   <div class="nav">
     <div class="nav-item active"><span class="emoji">🏠</span> หน้าหลัก</div>
-    <div class="nav-item"><span class="emoji">👤</span> รายชื่อนักเรียน</div>
+    <div class="nav-item" id="nav-students"><span class="emoji">👤</span> รายชื่อนักเรียน</div>
     <div class="nav-item"><span class="emoji">📝</span> บันทึกการชำระเงิน</div>
     <div class="nav-item new-item"><span class="emoji">🕒</span> ประวัติการชำระเงิน</div>
     <div class="nav-item"><span class="emoji">📄</span> บันทึกการเบิกเงิน</div>
     <div class="nav-item"><span class="emoji">💰</span> สรุปยอดเงิน</div>
     <div class="nav-item"><span class="emoji">⚙️</span> ตั้งค่า</div>
+  </div>
+
+  <div class="role-switch">
+    <label for="role-select">มุมมองตามสิทธิ์ผู้ใช้ (ทดสอบ)</label>
+    <select id="role-select" onchange="applyRole(this.value)">
+      <option value="admin">Admin</option>
+      <option value="user">User ทั่วไป</option>
+    </select>
   </div>
 </div>
 
@@ -266,5 +310,23 @@
   </div>
 </div>
 
+<script>
+  function applyRole(role) {
+    const studentsItem = document.getElementById('nav-students');
+    if (role === 'admin') {
+      studentsItem.classList.remove('disabled');
+      studentsItem.innerHTML = '<span class="emoji">👤</span> รายชื่อนักเรียน';
+      studentsItem.onclick = null;
+      studentsItem.title = '';
+    } else {
+      studentsItem.classList.add('disabled');
+      studentsItem.innerHTML = '<span class="emoji">👤</span> รายชื่อนักเรียน<span class="lock">🔒</span>';
+      studentsItem.title = 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น';
+      studentsItem.onclick = (e) => e.preventDefault();
+    }
+  }
+  // default view on load
+  applyRole(document.getElementById('role-select').value);
+</script>
 </body>
 </html>
