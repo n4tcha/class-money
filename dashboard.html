@@ -298,9 +298,9 @@
         <h3>รายการล่าสุด</h3>
         <table>
           <tr><th>ชื่อ-สกุล</th><th>รายการ</th><th>จำนวนเงิน</th><th>สถานะ</th><th>วันที่</th></tr>
-          <tr><td>นภัสร วิลัย</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
-          <tr><td>ธนวินท์ ศรีทอง</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
-          <tr><td>นาวารินทร์ แก้วใส</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>9 ก.ย. 2568</td></tr>
+          <tr><td id="recent-name-1">นภัสร วิลัย</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
+          <tr><td id="recent-name-2">ธนวินท์ ศรีทอง</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
+          <tr><td id="recent-name-3">นาวารินทร์ แก้วใส</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>9 ก.ย. 2568</td></tr>
         </table>
       </div>
     </div>
@@ -352,6 +352,27 @@
     statEl.textContent = `${count ?? 0} คน`;
   }
 
+  // ดึงชื่อนักเรียนจริง 3 คนแรกจากตาราง students มาแสดงในตาราง "รายการล่าสุด"
+  // (คอลัมน์อื่นในตาราง เช่น จำนวนเงิน/สถานะ/วันที่ ยังเป็นข้อมูลตัวอย่าง
+  //  รอจนกว่าจะมีตาราง payments จริงถึงจะดึงมาแทนได้ทั้งแถว)
+  async function fetchRecentNames() {
+    const { data, error } = await supabaseClient
+      .from('students')
+      .select('full_name')
+      .order('no', { ascending: true })
+      .limit(3);
+
+    if (error) {
+      console.error('ดึงชื่อนักเรียนไม่สำเร็จ:', error);
+      return;
+    }
+
+    data.forEach((student, i) => {
+      const cell = document.getElementById(`recent-name-${i + 1}`);
+      if (cell) cell.textContent = student.full_name;
+    });
+  }
+
   // เช็ค session จริง -> ดึง role + ชื่อจริงจากตาราง profiles -> อัปเดตหน้าจอ
   async function checkAccessAndInit() {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -373,6 +394,7 @@
       greetingTitle.textContent = `สวัสดีค่ะ ${session.user.email}`;
       applyRole('user'); // ดึง role ไม่ได้ ให้ถือว่าไม่มีสิทธิ์ ปลอดภัยไว้ก่อน
       fetchTotalStudents();
+      fetchRecentNames();
       return;
     }
 
@@ -382,6 +404,7 @@
 
     applyRole(profile.role);
     fetchTotalStudents();
+    fetchRecentNames();
   }
 
   checkAccessAndInit();
