@@ -394,12 +394,27 @@
           alert('เลขประจำตัวนักเรียนนี้ถูกใช้กับนักเรียนคนอื่นแล้ว');
           return;
         }
-        const { error } = await supabaseClient.from('students').update(payload).eq('id', editingId);
+        // .select() ต่อท้ายจำเป็นมาก: ถ้าไม่ใส่ และ RLS บล็อกแถวนี้
+        // Supabase จะไม่คืน error กลับมา แต่จะเงียบๆ ไม่แก้ไขอะไรเลย (0 แถว)
+        const { data, error } = await supabaseClient
+          .from('students')
+          .update(payload)
+          .eq('id', editingId)
+          .select();
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error('ไม่มีสิทธิ์แก้ไขข้อมูลนี้ (ถูกบล็อกโดย RLS policy) หรือไม่พบแถวนี้แล้ว');
+        }
         showToast('บันทึกการแก้ไขเรียบร้อยแล้ว');
       } else {
-        const { error } = await supabaseClient.from('students').insert(payload);
+        const { data, error } = await supabaseClient
+          .from('students')
+          .insert(payload)
+          .select();
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error('ไม่มีสิทธิ์เพิ่มข้อมูลนี้ (ถูกบล็อกโดย RLS policy)');
+        }
         showToast('เพิ่มนักเรียนใหม่เรียบร้อยแล้ว');
       }
       resetForm();
@@ -438,10 +453,19 @@
     if (!s) return;
     if (!confirm(`ต้องการลบข้อมูลของ "${s.full_name}" ใช่หรือไม่?`)) return;
 
-    const { error } = await supabaseClient.from('students').delete().eq('id', id);
+    const { data, error } = await supabaseClient
+      .from('students')
+      .delete()
+      .eq('id', id)
+      .select();
+
     if (error) {
       console.error(error);
       showToast('ลบไม่สำเร็จ: ' + error.message, true);
+      return;
+    }
+    if (!data || data.length === 0) {
+      showToast('ไม่มีสิทธิ์ลบข้อมูลนี้ (ถูกบล็อกโดย RLS policy)', true);
       return;
     }
     if (editingId === id) resetForm();
