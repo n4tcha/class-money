@@ -368,7 +368,6 @@
     document.getElementById('form-title').textContent = 'เพิ่มนักเรียนใหม่';
     document.getElementById('submit-btn').textContent = 'เพิ่มนักเรียน';
     ['f-no','f-student-id','f-citizen-id','f-fullname','f-nickname','f-phone'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('f-student-id').disabled = false;
   }
 
   function submitForm() {
@@ -385,6 +384,11 @@
     }
 
     if (editingId) {
+      const dup = students.find(s => s.student_id === student_id && s.student_id !== editingId);
+      if (dup) {
+        alert('เลขประจำตัวนักเรียนนี้ถูกใช้กับนักเรียนคนอื่นแล้ว');
+        return;
+      }
       const idx = students.findIndex(s => s.student_id === editingId);
       if (idx > -1) students[idx] = { no: no || students[idx].no, student_id, citizen_id, full_name, nickname, phone };
     } else {
@@ -407,7 +411,6 @@
     document.getElementById('submit-btn').textContent = 'บันทึกการแก้ไข';
     document.getElementById('f-no').value = s.no;
     document.getElementById('f-student-id').value = s.student_id;
-    document.getElementById('f-student-id').disabled = true;
     document.getElementById('f-citizen-id').value = s.citizen_id || '';
     document.getElementById('f-fullname').value = s.full_name;
     document.getElementById('f-nickname').value = s.nickname || '';
