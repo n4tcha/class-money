@@ -54,6 +54,9 @@
   .nav-item.disabled { color: #5b6685; cursor: not-allowed; opacity: 0.55; }
   .nav-item.disabled:hover { background: transparent; }
   .nav-item.disabled .lock { margin-left: auto; font-size: 12px; }
+  .nav-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 10px 12px; }
+  .nav-item.logout { color: #f87171; }
+  .nav-item.logout:hover { background: rgba(248,113,113,0.1); }
 
   .role-switch {
     margin: 14px 10px 0; padding: 10px 12px;
@@ -177,13 +180,15 @@
     </div>
   </div>
   <div class="nav">
-    <div class="nav-item"><span class="emoji">🏠</span> หน้าหลัก</div>
+    <div class="nav-item" onclick="location.href='dashboard.html'"><span class="emoji">🏠</span> หน้าหลัก</div>
     <div class="nav-item active" id="nav-students"><span class="emoji">👤</span> รายชื่อนักเรียน</div>
     <div class="nav-item"><span class="emoji">📝</span> บันทึกการชำระเงิน</div>
     <div class="nav-item"><span class="emoji">🕒</span> ประวัติการชำระเงิน</div>
     <div class="nav-item"><span class="emoji">📄</span> บันทึกการเบิกเงิน</div>
     <div class="nav-item"><span class="emoji">💰</span> สรุปยอดเงิน</div>
-    <div class="nav-item"><span class="emoji">⚙️</span> ตั้งค่า</div>
+
+    <div class="nav-divider"></div>
+    <div class="nav-item logout" onclick="logout()"><span class="emoji">🚪</span> ออกจากระบบ</div>
   </div>
 
   <div class="role-switch">
@@ -422,6 +427,14 @@
   function viewHistory(student_id) {
     const s = students.find(s => s.student_id === student_id);
     alert(`ไปยังหน้า "ประวัติการชำระเงิน" ของ ${s.full_name} (เชื่อมกับเมนูประวัติการชำระเงินด้านซ้าย)`);
+  }
+
+  // แก้ path นี้ให้ตรงกับหน้า login จริงของระบบ
+  const LOGIN_PAGE_URL = 'login.html';
+  function logout() {
+    if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
+    // ล้างข้อมูล session/token ที่เก็บไว้ตรงนี้ เช่น localStorage.removeItem('token')
+    window.location.href = LOGIN_PAGE_URL;
   }
 
   // ---------- Role-based access ----------

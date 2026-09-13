@@ -100,6 +100,17 @@
     margin-left: auto;
     font-size: 12px;
   }
+  .nav-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 10px 12px;
+  }
+  .nav-item.logout {
+    color: #f87171;
+  }
+  .nav-item.logout:hover {
+    background: rgba(248,113,113,0.1);
+  }
 
   /* Role switcher (demo only) */
   .role-switch {
@@ -240,7 +251,9 @@
     <div class="nav-item new-item"><span class="emoji">🕒</span> ประวัติการชำระเงิน</div>
     <div class="nav-item"><span class="emoji">📄</span> บันทึกการเบิกเงิน</div>
     <div class="nav-item"><span class="emoji">💰</span> สรุปยอดเงิน</div>
-    <div class="nav-item"><span class="emoji">⚙️</span> ตั้งค่า</div>
+
+    <div class="nav-divider"></div>
+    <div class="nav-item logout" onclick="logout()"><span class="emoji">🚪</span> ออกจากระบบ</div>
   </div>
 
   <div class="role-switch">
@@ -311,13 +324,18 @@
 </div>
 
 <script>
+  // แก้ path นี้ถ้าไฟล์หน้ารายชื่อนักเรียนอยู่คนละที่ เช่น 'pages/students.html'
+  const STUDENTS_PAGE_URL = 'students.html';
+  // แก้ path นี้ให้ตรงกับหน้า login จริงของระบบ
+  const LOGIN_PAGE_URL = 'login.html';
+
   function applyRole(role) {
     const studentsItem = document.getElementById('nav-students');
     if (role === 'admin') {
       studentsItem.classList.remove('disabled');
       studentsItem.innerHTML = '<span class="emoji">👤</span> รายชื่อนักเรียน';
-      studentsItem.onclick = null;
       studentsItem.title = '';
+      studentsItem.onclick = () => { window.location.href = STUDENTS_PAGE_URL; };
     } else {
       studentsItem.classList.add('disabled');
       studentsItem.innerHTML = '<span class="emoji">👤</span> รายชื่อนักเรียน<span class="lock">🔒</span>';
@@ -325,6 +343,13 @@
       studentsItem.onclick = (e) => e.preventDefault();
     }
   }
+
+  function logout() {
+    if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
+    // ล้างข้อมูล session/token ที่เก็บไว้ตรงนี้ เช่น localStorage.removeItem('token')
+    window.location.href = LOGIN_PAGE_URL;
+  }
+
   // default view on load
   applyRole(document.getElementById('role-select').value);
 </script>
