@@ -58,18 +58,6 @@
   .nav-item.logout { color: #f87171; }
   .nav-item.logout:hover { background: rgba(248,113,113,0.1); }
 
-  .role-switch {
-    margin: 14px 10px 0; padding: 10px 12px;
-    background: rgba(255,255,255,0.05); border-radius: 8px;
-    font-size: 12px; color: #94a3b8;
-  }
-  .role-switch label { display: block; margin-bottom: 6px; }
-  .role-switch select {
-    width: 100%; background: #1a2853; color: #ffffff;
-    border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
-    padding: 6px 8px; font-size: 13px;
-  }
-
   /* ---------- Main ---------- */
   .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .topbar {
@@ -179,6 +167,7 @@
   .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
 </head>
 <body>
 
@@ -202,14 +191,6 @@
 
     <div class="nav-divider"></div>
     <div class="nav-item logout" onclick="logout()"><span class="emoji">🚪</span> ออกจากระบบ</div>
-  </div>
-
-  <div class="role-switch">
-    <label for="role-select">มุมมองตามสิทธิ์ผู้ใช้ (ทดสอบ)</label>
-    <select id="role-select" onchange="applyRole(this.value)">
-      <option value="admin">Admin</option>
-      <option value="user">User ทั่วไป</option>
-    </select>
   </div>
 </div>
 
@@ -297,15 +278,8 @@
 </div>
 
 <script>
-  // =========================================================
-  // ตั้งค่าการเชื่อมต่อ Supabase
-  // หาได้จาก Supabase Dashboard > Project Settings > API
-  // Project URL และ anon public key เท่านั้น (ห้ามใช้ service_role key ที่นี่)
-  // =========================================================
-  const SUPABASE_URL = 'https://bcxfkxvojjfvjtigmyyt.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjeGZreHZvampmdmp0aWdteXl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMTk1MzgsImV4cCI6MjEwNDc5NTUzOH0.dyjYCitp7cIK_BAehNaVFURtouasTSW6XQkAHNKT3oE';
-
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // ใช้ supabaseClient ตัวเดียวกับหน้าอื่นๆ ทั้งระบบ (มาจาก supabaseClient.js)
+  // ไม่ต้องสร้าง client ซ้ำที่นี่ เพื่อกันค่า URL/KEY หลุดไม่ตรงกันระหว่างไฟล์
 
   let students = [];      // ข้อมูลที่ดึงมาจากตาราง students ใน Supabase
   let editingId = null;   // uuid (คอลัมน์ id) ของแถวที่กำลังแก้ไข อยู่
@@ -328,7 +302,7 @@
     const tbody = document.getElementById('table-body');
     tbody.innerHTML = '<tr class="loading-row"><td colspan="5">กำลังโหลดข้อมูล...</td></tr>';
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('students')
       .select('id, no, student_id, citizen_id, full_name, nickname, phone')
       .order('no', { ascending: true });
@@ -420,11 +394,11 @@
           alert('เลขประจำตัวนักเรียนนี้ถูกใช้กับนักเรียนคนอื่นแล้ว');
           return;
         }
-        const { error } = await supabase.from('students').update(payload).eq('id', editingId);
+        const { error } = await supabaseClient.from('students').update(payload).eq('id', editingId);
         if (error) throw error;
         showToast('บันทึกการแก้ไขเรียบร้อยแล้ว');
       } else {
-        const { error } = await supabase.from('students').insert(payload);
+        const { error } = await supabaseClient.from('students').insert(payload);
         if (error) throw error;
         showToast('เพิ่มนักเรียนใหม่เรียบร้อยแล้ว');
       }
@@ -464,7 +438,7 @@
     if (!s) return;
     if (!confirm(`ต้องการลบข้อมูลของ "${s.full_name}" ใช่หรือไม่?`)) return;
 
-    const { error } = await supabase.from('students').delete().eq('id', id);
+    const { error } = await supabaseClient.from('students').delete().eq('id', id);
     if (error) {
       console.error(error);
       showToast('ลบไม่สำเร็จ: ' + error.message, true);
@@ -481,14 +455,14 @@
   }
 
   // แก้ path นี้ให้ตรงกับหน้า login จริงของระบบ
-  const LOGIN_PAGE_URL = 'login.html';
-  function logout() {
+  const LOGIN_PAGE_URL = 'index.html';
+  async function logout() {
     if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-    // ถ้าใช้ Supabase Auth ให้เรียก supabase.auth.signOut() ก่อน redirect
+    await supabaseClient.auth.signOut();
     window.location.href = LOGIN_PAGE_URL;
   }
 
-  // ---------- Role-based access ----------
+  // ---------- Role-based access (ผูกกับ Supabase จริง) ----------
   function applyRole(role) {
     const navStudents = document.getElementById('nav-students');
     const adminView = document.getElementById('admin-view');
@@ -498,6 +472,7 @@
       navStudents.classList.remove('disabled');
       adminView.style.display = 'grid';
       deniedView.style.display = 'none';
+      fetchStudents(); // โหลดข้อมูลก็ต่อเมื่อเป็น admin เท่านั้น
     } else {
       navStudents.classList.add('disabled');
       adminView.style.display = 'none';
@@ -505,8 +480,33 @@
     }
   }
 
-  applyRole(document.getElementById('role-select').value);
-  fetchStudents();
+  // เช็ค session -> ดึง role จริงจากตาราง profiles -> ค่อยเปิด/ปิดหน้า
+  async function checkAccessAndInit() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (!session) {
+      // ยังไม่ได้ login เลย เด้งกลับหน้า login ทันที
+      window.location.href = LOGIN_PAGE_URL;
+      return;
+    }
+
+    const { data: profile, error } = await supabaseClient
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) {
+      console.error('ดึง role ไม่สำเร็จ:', error);
+      // ดึง role ไม่ได้ ให้ถือว่าไม่มีสิทธิ์ ปลอดภัยไว้ก่อน
+      applyRole('user');
+      return;
+    }
+
+    applyRole(profile.role);
+  }
+
+  checkAccessAndInit();
 </script>
 
 </body>
