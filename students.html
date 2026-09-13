@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>รายชื่อนักเรียน - จัดการเก็บเงิน</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', 'Segoe UI', sans-serif;
+    background: #f3f4f6;
+    color: #1f2937;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---------- Sidebar (matches หน้าหลัก) ---------- */
+  .sidebar {
+    width: 240px;
+    background: #0f1b3d;
+    color: #cbd5e1;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar-header .icon-box {
+    width: 34px;
+    height: 34px;
+    background: #dc2626;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .sidebar-header .title { font-weight: 700; color: #ffffff; font-size: 15px; line-height: 1.3; }
+  .sidebar-header .subtitle { font-size: 12px; color: #94a3b8; }
+  .nav { padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; font-size: 14px;
+    color: #cbd5e1; text-decoration: none; cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.06); }
+  .nav-item.active { background: #3b6fe0; color: #ffffff; font-weight: 600; }
+  .nav-item .emoji { width: 18px; text-align: center; font-size: 15px; }
+  .nav-item.disabled { color: #5b6685; cursor: not-allowed; opacity: 0.55; }
+  .nav-item.disabled:hover { background: transparent; }
+  .nav-item.disabled .lock { margin-left: auto; font-size: 12px; }
+
+  .role-switch {
+    margin: 14px 10px 0; padding: 10px 12px;
+    background: rgba(255,255,255,0.05); border-radius: 8px;
+    font-size: 12px; color: #94a3b8;
+  }
+  .role-switch label { display: block; margin-bottom: 6px; }
+  .role-switch select {
+    width: 100%; background: #1a2853; color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+    padding: 6px 8px; font-size: 13px;
+  }
+
+  /* ---------- Main ---------- */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    background: #ffffff; padding: 18px 32px; border-bottom: 1px solid #e5e7eb;
+    font-weight: 700; font-size: 16px; color: #0f1b3d;
+  }
+  .content { padding: 28px 32px; }
+
+  /* ---------- Access denied ---------- */
+  .denied {
+    display: none;
+    background: #ffffff; border-radius: 14px; padding: 60px 30px;
+    text-align: center; border: 1px solid #eef0f3;
+  }
+  .denied .lock-big { font-size: 40px; margin-bottom: 14px; }
+  .denied h2 { color: #0f1b3d; font-size: 18px; margin-bottom: 6px; }
+  .denied p { color: #64748b; font-size: 13.5px; }
+
+  /* ---------- Page layout: dark admin panel (reference style) ---------- */
+  .admin-wrap {
+    background: #0f1424;
+    border-radius: 16px;
+    padding: 28px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 26px;
+    color: #e5e7eb;
+  }
+
+  .form-title { font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 20px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; color: #cbd5e1; margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%;
+    background: #161d33;
+    border: 1px solid #2a3352;
+    color: #e5e7eb;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: #3b6fe0; }
+  .field input::placeholder { color: #5b6685; }
+  .field-hint { font-size: 11.5px; color: #5b6685; margin-top: 5px; }
+
+  .form-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .btn {
+    border: none; border-radius: 8px; padding: 10px 18px;
+    font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  .btn-primary { background: #3b6fe0; color: #ffffff; }
+  .btn-primary:hover { background: #3260c9; }
+  .btn-ghost { background: transparent; color: #9aa5c0; border: 1px solid #2a3352; }
+  .btn-ghost:hover { background: #161d33; }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .panel-header h2 { font-size: 18px; font-weight: 700; color: #ffffff; }
+  .search-box input {
+    background: #161d33; border: 1px solid #2a3352; color: #e5e7eb;
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; width: 220px;
+  }
+
+  .table-scroll { overflow-x: auto; border-radius: 10px; border: 1px solid #1f2740; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 760px; }
+  thead th {
+    text-align: left; font-size: 12px; color: #8b95b3;
+    padding: 12px 14px; background: #131a30; font-weight: 600;
+    border-bottom: 1px solid #1f2740;
+  }
+  tbody td { padding: 12px 14px; border-bottom: 1px solid #1a2138; vertical-align: middle; }
+  tbody tr:hover { background: #131a30; }
+  .name-cell .full-name { color: #ffffff; font-weight: 600; }
+  .name-cell .nickname { color: #7c8bb5; font-size: 12px; }
+  .actions-cell { display: flex; gap: 8px; justify-content: flex-end; }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 7px; border: 1px solid;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 13px; background: transparent;
+  }
+  .icon-btn.edit { color: #60a5fa; border-color: #2a4a80; }
+  .icon-btn.edit:hover { background: rgba(96,165,250,0.12); }
+  .icon-btn.history { color: #f59e0b; border-color: #7a5a1e; }
+  .icon-btn.history:hover { background: rgba(245,158,11,0.12); }
+  .icon-btn.delete { color: #f87171; border-color: #7a2e2e; }
+  .icon-btn.delete:hover { background: rgba(248,113,113,0.12); }
+
+  .table-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 14px; font-size: 12.5px; color: #7c8bb5;
+  }
+
+  .empty-row td { text-align: center; color: #5b6685; padding: 30px 0; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="icon-box">🏫</div>
+    <div>
+      <div class="title">จัดการเก็บเงิน</div>
+      <div class="subtitle">ห้องเรียน</div>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="nav-item"><span class="emoji">🏠</span> หน้าหลัก</div>
+    <div class="nav-item active" id="nav-students"><span class="emoji">👤</span> รายชื่อนักเรียน</div>
+    <div class="nav-item"><span class="emoji">📝</span> บันทึกการชำระเงิน</div>
+    <div class="nav-item"><span class="emoji">🕒</span> ประวัติการชำระเงิน</div>
+    <div class="nav-item"><span class="emoji">📄</span> บันทึกการเบิกเงิน</div>
+    <div class="nav-item"><span class="emoji">💰</span> สรุปยอดเงิน</div>
+    <div class="nav-item"><span class="emoji">⚙️</span> ตั้งค่า</div>
+  </div>
+
+  <div class="role-switch">
+    <label for="role-select">มุมมองตามสิทธิ์ผู้ใช้ (ทดสอบ)</label>
+    <select id="role-select" onchange="applyRole(this.value)">
+      <option value="admin">Admin</option>
+      <option value="user">User ทั่วไป</option>
+    </select>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">รายชื่อนักเรียน</div>
+  <div class="content">
+
+    <!-- Access denied view -->
+    <div class="denied" id="denied-view">
+      <div class="lock-big">🔒</div>
+      <h2>ไม่มีสิทธิ์เข้าถึงหน้านี้</h2>
+      <p>หน้าจัดการข้อมูลนักเรียนใช้ได้เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น</p>
+    </div>
+
+    <!-- Admin management view -->
+    <div class="admin-wrap" id="admin-view">
+      <!-- Left: form -->
+      <div>
+        <div class="form-title" id="form-title">เพิ่มนักเรียนใหม่</div>
+
+        <div class="field">
+          <label>เลขที่ในห้อง</label>
+          <input type="number" id="f-no" placeholder="เช่น 1">
+        </div>
+        <div class="field">
+          <label>เลขประจำตัวนักเรียน</label>
+          <input type="text" id="f-student-id" placeholder="เช่น 13911">
+        </div>
+        <div class="field">
+          <label>รหัสประจำตัวประชาชน</label>
+          <input type="text" id="f-citizen-id" placeholder="เลข 13 หลัก">
+        </div>
+        <div class="field">
+          <label>ชื่อ-นามสกุล</label>
+          <input type="text" id="f-fullname" placeholder="เช่น นายกมลชัย วงค์ธรรม">
+        </div>
+        <div class="field">
+          <label>ชื่อเล่น</label>
+          <input type="text" id="f-nickname" placeholder="เช่น แบงค์">
+        </div>
+        <div class="field">
+          <label>เบอร์โทร</label>
+          <input type="text" id="f-phone" placeholder="เช่น 0800390506">
+          <div class="field-hint">ใช้สำหรับติดต่อผู้ปกครอง/นักเรียน</div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="submit-btn" onclick="submitForm()">เพิ่มนักเรียน</button>
+          <button class="btn btn-ghost" onclick="resetForm()">ล้างฟอร์ม</button>
+        </div>
+      </div>
+
+      <!-- Right: table -->
+      <div>
+        <div class="panel-header">
+          <h2>รายชื่อนักเรียนทั้งหมด</h2>
+          <div class="search-box">
+            <input type="text" id="search-input" placeholder="ค้นหาชื่อ, เลขประจำตัว..." oninput="renderTable()">
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>เลขที่</th>
+                <th>เลขประจำตัว</th>
+                <th>ชื่อ-สกุล</th>
+                <th>เบอร์โทร</th>
+                <th style="text-align:right;">การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+
+        <div class="table-footer">
+          <span id="row-count">0 คน</span>
+          <span>คลิกไอคอน 🕒 เพื่อดูประวัติการชำระเงินของนักเรียนคนนั้น</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ---------- Seed data (จาก Excel ห้อง 5-4) ----------
+  let students = [
+    {no:1,student_id:'13911',citizen_id:'1102004109502',full_name:'นายกมลชัย วงค์ธรรม',nickname:'แบงค์',phone:'0800390506'},
+    {no:2,student_id:'15083',citizen_id:'1349901679708',full_name:'นายกฤตเมธ  สุขอุทัย',nickname:'ไดมอนด์',phone:'0971616949'},
+    {no:3,student_id:'13912',citizen_id:'1101801580992',full_name:'นายกฤษณะ จินดาศรี',nickname:'ไนท์ฺ',phone:'0802696736'},
+    {no:4,student_id:'13913',citizen_id:'1179900535062',full_name:'นายเกื้อกูล ม่วงรัตน์',nickname:'ก้อง',phone:'0982272462'},
+    {no:5,student_id:'15082',citizen_id:'1849300110536',full_name:'นายคมกฤต สมบัติเเก้ว',nickname:'ซิบโป้',phone:'0980107731'},
+    {no:6,student_id:'11830',citizen_id:'1139600547995',full_name:'นายชนาภัทร เเดงด้วง',nickname:'ตัส',phone:'0627260169'},
+    {no:8,student_id:'11831',citizen_id:'1100704185421',full_name:'นายชวกรณ์ บุรณศิริ',nickname:'ออโต้',phone:'0937120331'},
+    {no:9,student_id:'11908',citizen_id:'1103000235334',full_name:'นายโชคชัย เเสนสุข',nickname:'เต้ย',phone:'0959698260'},
+    {no:10,student_id:'11964',citizen_id:'1139700086523',full_name:'นายณัฐกรณ์ สอนจิตร',nickname:'เพชร',phone:'0654160999'},
+    {no:11,student_id:'11991',citizen_id:'1139700083010',full_name:'นายณัฐพงษ์ ทับนิล',nickname:'สายน้ำ',phone:'0840018570'},
+    {no:12,student_id:'13916',citizen_id:'1104400072425',full_name:'นายธนกฤต สุวรรณพิบูลย์',nickname:'กาย',phone:'0828453779'},
+    {no:13,student_id:'11742',citizen_id:'1100704178246',full_name:'นายธนพล ตะราษี',nickname:'ตี๋',phone:'0934575902'},
+    {no:14,student_id:'11743',citizen_id:'1103400173352',full_name:'นายธนวัฒน์ ทรงวุฒิ',nickname:'ฟลุ๊ค',phone:'0624242647'},
+    {no:15,student_id:'11853',citizen_id:'1139600578459',full_name:'นายธนวัน บรรลุ',nickname:'เรน',phone:'0638398312'},
+    {no:16,student_id:'13917',citizen_id:'1469900851344',full_name:'นายธีรภัทร บุแก้ว',nickname:'ตูน',phone:'0954273470'},
+    {no:17,student_id:'13918',citizen_id:'1104200700538',full_name:'นายนรวัฒน์ แก้วนาพันธ์',nickname:'ปอนด์',phone:'0636753709'},
+    {no:18,student_id:'13919',citizen_id:'1139600570521',full_name:'นายนัทธวัฒน์ พยุงศักดิ์พาณิชย์',nickname:'เฟรม',phone:'0821411861'},
+    {no:19,student_id:'11892',citizen_id:'1139600570065',full_name:'นายนันทวัฒน์ ต่อต้น',nickname:'โม่',phone:'0805702652'},
+    {no:20,student_id:'13921',citizen_id:'1719300028971',full_name:'นายประเสริฐ เรือนใจดี',nickname:'เกมส์',phone:'0838259975'},
+    {no:21,student_id:'11812',citizen_id:'1139900629342',full_name:'นายพรชัย สนแก้ว',nickname:'กันต์',phone:'0646600055'},
+    {no:22,student_id:'13922',citizen_id:'1849902114211',full_name:'นายพีรพัฒน์ ทรงเสี่ยงชัย',nickname:'พี',phone:'0980870468'},
+    {no:23,student_id:'11814',citizen_id:'1139900620825',full_name:'นายวรายุทธ์ จิตนารี',nickname:'เก็ต',phone:'0829753368'},
+    {no:24,student_id:'13923',citizen_id:'1659902551842',full_name:'นายศิริมณฑล บุญมา',nickname:'ธันวา',phone:'0925323734'},
+    {no:25,student_id:'11767',citizen_id:'1139600532173',full_name:'นายศิษฐวิตร์ เปี่ยมสุคนธ์',nickname:'เอ็ม',phone:'0909452073'},
+    {no:26,student_id:'11837',citizen_id:'1139600555831',full_name:'นายเสฏฐพงศ์ เจริญนพกิจ',nickname:'บ๊อบ',phone:'0801650343'},
+    {no:27,student_id:'13925',citizen_id:'1349901620266',full_name:'นายอภิชน สุขสุข',nickname:'ยิ่งใหญ่',phone:'0845062716'},
+    {no:28,student_id:'13926',citizen_id:'1469900851352',full_name:'นายอัทรพล บุแก้ว',nickname:'ตาล',phone:'0926122060'},
+    {no:29,student_id:'13927',citizen_id:'1139800157732',full_name:'นายเอกบุรุษ พันธ์โนราช',nickname:'อินซ์',phone:'0826365184'},
+    {no:30,student_id:'13928',citizen_id:'1139600512199',full_name:'นางสาวณัชชา ม่วงงาม',nickname:'ข้าวหอม',phone:'0917128387'},
+    {no:31,student_id:'13929',citizen_id:'1560301495886',full_name:'นางสาวณัฐนิชา ทองริม',nickname:'นํ้าขิง',phone:'0806279193'},
+    {no:33,student_id:'13930',citizen_id:'1130201222946',full_name:'นางสาวพรธิตา ทับทิมทอง',nickname:'ปิ่น',phone:'0957121315'},
+    {no:34,student_id:'11753',citizen_id:'1139600562447',full_name:'นางสาวมณลิสา สงกลาง',nickname:'เหมย',phone:'0809399903'},
+    {no:35,student_id:'12176',citizen_id:'1139900638317',full_name:'นางสาวยุพารัตน์ ยาพรม',nickname:'เนย',phone:'0615184100'},
+    {no:36,student_id:'12187',citizen_id:'1110301505524',full_name:'นางสาววรินทร วงศ์ไชย',nickname:'คาราเมล',phone:'0826863425'},
+    {no:37,student_id:'11754',citizen_id:'1309903678768',full_name:'นางสาวศิรประภา แป้นทะเล',nickname:'พะแพง',phone:'0638610161'},
+    {no:38,student_id:'13931',citizen_id:'1104301217051',full_name:'นางสาวหนึ่งฤทัย วีระกุล',nickname:'ปุยนุ่น',phone:'0950569401'},
+    {no:39,student_id:'11756',citizen_id:'1139600533315',full_name:'นางสาวอรจิรา บุตรวงษ์',nickname:'มีนา',phone:'0944832277'},
+  ];
+
+  let editingId = null; // student_id currently being edited
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function renderTable() {
+    const q = document.getElementById('search-input').value.trim().toLowerCase();
+    const tbody = document.getElementById('table-body');
+    const filtered = students.filter(s =>
+      !q || s.full_name.toLowerCase().includes(q) || s.nickname.toLowerCase().includes(q) || s.student_id.includes(q)
+    ).sort((a,b) => a.no - b.no);
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">ไม่พบข้อมูลนักเรียน</td></tr>';
+    } else {
+      tbody.innerHTML = filtered.map(s => `
+        <tr>
+          <td>${s.no}</td>
+          <td>${escapeHtml(s.student_id)}</td>
+          <td class="name-cell">
+            <div class="full-name">${escapeHtml(s.full_name)}</div>
+            <div class="nickname">${escapeHtml(s.nickname || '')}</div>
+          </td>
+          <td>${escapeHtml(s.phone || '-')}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="icon-btn edit" title="แก้ไข" onclick="editStudent('${s.student_id}')">✏️</button>
+              <button class="icon-btn history" title="ประวัติการชำระเงิน" onclick="viewHistory('${s.student_id}')">🕒</button>
+              <button class="icon-btn delete" title="ลบ" onclick="deleteStudent('${s.student_id}')">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+    document.getElementById('row-count').textContent = students.length + ' คน';
+  }
+
+  function resetForm() {
+    editingId = null;
+    document.getElementById('form-title').textContent = 'เพิ่มนักเรียนใหม่';
+    document.getElementById('submit-btn').textContent = 'เพิ่มนักเรียน';
+    ['f-no','f-student-id','f-citizen-id','f-fullname','f-nickname','f-phone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-student-id').disabled = false;
+  }
+
+  function submitForm() {
+    const no = parseInt(document.getElementById('f-no').value, 10);
+    const student_id = document.getElementById('f-student-id').value.trim();
+    const citizen_id = document.getElementById('f-citizen-id').value.trim();
+    const full_name = document.getElementById('f-fullname').value.trim();
+    const nickname = document.getElementById('f-nickname').value.trim();
+    const phone = document.getElementById('f-phone').value.trim();
+
+    if (!student_id || !full_name) {
+      alert('กรุณากรอกเลขประจำตัวนักเรียนและชื่อ-นามสกุล');
+      return;
+    }
+
+    if (editingId) {
+      const idx = students.findIndex(s => s.student_id === editingId);
+      if (idx > -1) students[idx] = { no: no || students[idx].no, student_id, citizen_id, full_name, nickname, phone };
+    } else {
+      if (students.some(s => s.student_id === student_id)) {
+        alert('เลขประจำตัวนักเรียนนี้มีอยู่แล้วในระบบ');
+        return;
+      }
+      students.push({ no: no || (students.length + 1), student_id, citizen_id, full_name, nickname, phone });
+    }
+
+    resetForm();
+    renderTable();
+  }
+
+  function editStudent(student_id) {
+    const s = students.find(s => s.student_id === student_id);
+    if (!s) return;
+    editingId = student_id;
+    document.getElementById('form-title').textContent = 'แก้ไขข้อมูลนักเรียน';
+    document.getElementById('submit-btn').textContent = 'บันทึกการแก้ไข';
+    document.getElementById('f-no').value = s.no;
+    document.getElementById('f-student-id').value = s.student_id;
+    document.getElementById('f-student-id').disabled = true;
+    document.getElementById('f-citizen-id').value = s.citizen_id || '';
+    document.getElementById('f-fullname').value = s.full_name;
+    document.getElementById('f-nickname').value = s.nickname || '';
+    document.getElementById('f-phone').value = s.phone || '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function deleteStudent(student_id) {
+    const s = students.find(s => s.student_id === student_id);
+    if (!s) return;
+    if (!confirm(`ต้องการลบข้อมูลของ "${s.full_name}" ใช่หรือไม่?`)) return;
+    students = students.filter(s => s.student_id !== student_id);
+    if (editingId === student_id) resetForm();
+    renderTable();
+  }
+
+  function viewHistory(student_id) {
+    const s = students.find(s => s.student_id === student_id);
+    alert(`ไปยังหน้า "ประวัติการชำระเงิน" ของ ${s.full_name} (เชื่อมกับเมนูประวัติการชำระเงินด้านซ้าย)`);
+  }
+
+  // ---------- Role-based access ----------
+  function applyRole(role) {
+    const navStudents = document.getElementById('nav-students');
+    const adminView = document.getElementById('admin-view');
+    const deniedView = document.getElementById('denied-view');
+
+    if (role === 'admin') {
+      navStudents.classList.remove('disabled');
+      adminView.style.display = 'grid';
+      deniedView.style.display = 'none';
+    } else {
+      navStudents.classList.add('disabled');
+      adminView.style.display = 'none';
+      deniedView.style.display = 'block';
+    }
+  }
+
+  applyRole(document.getElementById('role-select').value);
+  renderTable();
+</script>
+
+</body>
+</html>
