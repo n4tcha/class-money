@@ -112,6 +112,34 @@
     background: rgba(248,113,113,0.1);
   }
 
+  /* ซ่อนหน้าไว้จนกว่าจะตรวจ login เสร็จ */
+  body.auth-pending { visibility: hidden; }
+
+  /* กล่องผู้ใช้ที่ login อยู่ */
+  .user-box {
+    margin: auto 10px 16px;
+    padding: 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .user-box-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .user-box-name {
+    color: #ffffff; font-size: 13px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .user-box-role { font-size: 11.5px; }
+  .user-box-role.role-admin { color: #fca5a5; }
+  .user-box-role.role-sup { color: #fde68a; }
+  .user-box-role.role-user { color: #93c5fd; }
+
   /* Main content */
   .main {
     flex: 1;
@@ -209,24 +237,9 @@
     font-size: 12px;
     font-weight: 600;
   }
-
-  /* ---------- Responsive: จอแคบ/หน้าต่างไม่เต็มจอ ---------- */
-  @media (max-width: 880px) {
-    body { flex-direction: column; }
-    .sidebar {
-      width: 100%;
-      flex-direction: row;
-      overflow-x: auto;
-    }
-    .sidebar-header { display: none; }
-    .nav { flex-direction: row; padding: 10px; }
-    .nav-divider { display: none; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .panels { grid-template-columns: 1fr; }
-  }
 </style>
 </head>
-<body>
+<body class="auth-pending">
 
 <div class="sidebar">
   <div class="sidebar-header">
@@ -247,6 +260,14 @@
     <div class="nav-divider"></div>
     <div class="nav-item logout" onclick="logout()"><span class="emoji">🚪</span> ออกจากระบบ</div>
   </div>
+
+  <div class="user-box">
+    <div class="user-box-avatar">👤</div>
+    <div style="min-width:0;">
+      <div class="user-box-name" id="user-box-name"></div>
+      <div class="user-box-role" id="user-box-role"></div>
+    </div>
+  </div>
 </div>
 
 <div class="main">
@@ -254,14 +275,14 @@
   <div class="content">
     <div class="welcome">
       <h2 id="greeting-title">สวัสดีค่ะ</h2>
-      <p>ระบบจัดการการเก็บเงินภายในห้องเรียน</p>
+      <p id="greeting-sub">ระบบจัดการการเก็บเงินภายในห้องเรียน</p>
     </div>
 
     <div class="stats">
       <div class="stat-card">
         <div class="stat-icon blue">👥</div>
         <div class="stat-label">จำนวนนักเรียนทั้งหมด</div>
-        <div class="stat-value" id="stat-total-students">กำลังโหลด...</div>
+        <div class="stat-value">32 คน</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon green">✅</div>
@@ -271,7 +292,7 @@
       <div class="stat-card">
         <div class="stat-icon red">❗</div>
         <div class="stat-label">ยังไม่ชำระ</div>
-        <div class="stat-value">9 คน</div>
+        <div class="stat-value">4 คน</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon yellow">💳</div>
@@ -298,9 +319,9 @@
         <h3>รายการล่าสุด</h3>
         <table>
           <tr><th>ชื่อ-สกุล</th><th>รายการ</th><th>จำนวนเงิน</th><th>สถานะ</th><th>วันที่</th></tr>
-          <tr><td id="recent-name-1">นภัสร วิลัย</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
-          <tr><td id="recent-name-2">ธนวินท์ ศรีทอง</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
-          <tr><td id="recent-name-3">นาวารินทร์ แก้วใส</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>9 ก.ย. 2568</td></tr>
+          <tr><td>นภัสร วิลัย</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
+          <tr><td>ธนวินท์ ศรีทอง</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>10 ก.ย. 2568</td></tr>
+          <tr><td>นาวารินทร์ แก้วใส</td><td>ค่ากิจกรรม</td><td>100</td><td><span class="badge">ชำระแล้ว</span></td><td>9 ก.ย. 2568</td></tr>
         </table>
       </div>
     </div>
@@ -309,105 +330,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabaseClient.js"></script>
-<script>
-  // แก้ path นี้ถ้าไฟล์หน้ารายชื่อนักเรียนอยู่คนละที่ เช่น 'pages/students.html'
-  const STUDENTS_PAGE_URL = 'students.html';
-  // แก้ path นี้ให้ตรงกับหน้า login จริงของระบบ
-  const LOGIN_PAGE_URL = 'index.html';
-
-  function applyRole(role) {
-    const studentsItem = document.getElementById('nav-students');
-    if (role === 'admin') {
-      studentsItem.classList.remove('disabled');
-      studentsItem.innerHTML = '<span class="emoji">👤</span> รายชื่อนักเรียน';
-      studentsItem.title = '';
-      studentsItem.onclick = () => { window.location.href = STUDENTS_PAGE_URL; };
-    } else {
-      studentsItem.classList.add('disabled');
-      studentsItem.innerHTML = '<span class="emoji">👤</span> รายชื่อนักเรียน<span class="lock">🔒</span>';
-      studentsItem.title = 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น';
-      studentsItem.onclick = (e) => e.preventDefault();
-    }
-  }
-
-  async function logout() {
-    if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-    await supabaseClient.auth.signOut();
-    window.location.href = LOGIN_PAGE_URL;
-  }
-
-  // ดึงจำนวนนักเรียนทั้งหมดจริงจากตาราง students
-  async function fetchTotalStudents() {
-    const statEl = document.getElementById('stat-total-students');
-    const { count, error } = await supabaseClient
-      .from('students')
-      .select('*', { count: 'exact', head: true });
-
-    if (error) {
-      console.error('ดึงจำนวนนักเรียนไม่สำเร็จ:', error);
-      statEl.textContent = '-';
-      return;
-    }
-
-    statEl.textContent = `${count ?? 0} คน`;
-  }
-
-  // ดึงชื่อนักเรียนจริง 3 คนแรกจากตาราง students มาแสดงในตาราง "รายการล่าสุด"
-  // (คอลัมน์อื่นในตาราง เช่น จำนวนเงิน/สถานะ/วันที่ ยังเป็นข้อมูลตัวอย่าง
-  //  รอจนกว่าจะมีตาราง payments จริงถึงจะดึงมาแทนได้ทั้งแถว)
-  async function fetchRecentNames() {
-    const { data, error } = await supabaseClient
-      .from('students')
-      .select('full_name')
-      .order('no', { ascending: true })
-      .limit(3);
-
-    if (error) {
-      console.error('ดึงชื่อนักเรียนไม่สำเร็จ:', error);
-      return;
-    }
-
-    data.forEach((student, i) => {
-      const cell = document.getElementById(`recent-name-${i + 1}`);
-      if (cell) cell.textContent = student.full_name;
-    });
-  }
-
-  // เช็ค session จริง -> ดึง role + ชื่อจริงจากตาราง profiles -> อัปเดตหน้าจอ
-  async function checkAccessAndInit() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-
-    if (!session) {
-      window.location.href = LOGIN_PAGE_URL;
-      return;
-    }
-
-    const greetingTitle = document.getElementById('greeting-title');
-    const { data: profile, error } = await supabaseClient
-      .from('profiles')
-      .select('role, full_name')
-      .eq('id', session.user.id)
-      .single();
-
-    if (error) {
-      console.error('ดึงข้อมูล profile ไม่สำเร็จ:', error);
-      greetingTitle.textContent = `สวัสดีค่ะ ${session.user.email}`;
-      applyRole('user'); // ดึง role ไม่ได้ ให้ถือว่าไม่มีสิทธิ์ ปลอดภัยไว้ก่อน
-      fetchTotalStudents();
-      fetchRecentNames();
-      return;
-    }
-
-    greetingTitle.textContent = profile.full_name
-      ? `สวัสดีค่ะ คุณ${profile.full_name}`
-      : `สวัสดีค่ะ ${session.user.email}`;
-
-    applyRole(profile.role);
-    fetchTotalStudents();
-    fetchRecentNames();
-  }
-
-  checkAccessAndInit();
-</script>
+<script src="session.js"></script>
+<script src="dashboard.js"></script>
 </body>
 </html>

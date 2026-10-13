@@ -58,6 +58,38 @@
   .nav-item.logout { color: #f87171; }
   .nav-item.logout:hover { background: rgba(248,113,113,0.1); }
 
+  body.auth-pending { visibility: hidden; }
+
+  .user-box {
+    margin: auto 10px 16px; padding: 12px;
+    background: rgba(255,255,255,0.05); border-radius: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-box-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .user-box-name {
+    color: #ffffff; font-size: 13px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .user-box-role { font-size: 11.5px; }
+  .user-box-role.role-admin { color: #fca5a5; }
+  .user-box-role.role-sup { color: #fde68a; }
+  .user-box-role.role-user { color: #93c5fd; }
+
+  /* โหมดดูอย่างเดียว (user ทั่วไป) */
+  .admin-wrap.readonly { grid-template-columns: 1fr; }
+  .admin-wrap.readonly .staff-only { display: none !important; }
+  .readonly-banner {
+    display: none;
+    background: #161d33; border: 1px solid #2a3352; color: #93c5fd;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px;
+  }
+  .admin-wrap.readonly .readonly-banner { display: block; }
+
   /* ---------- Main ---------- */
   .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .topbar {
@@ -168,8 +200,9 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabaseClient.js"></script>
+<script src="session.js"></script>
 </head>
-<body>
+<body class="auth-pending">
 
 <div class="toast" id="toast"></div>
 
@@ -192,23 +225,24 @@
     <div class="nav-divider"></div>
     <div class="nav-item logout" onclick="logout()"><span class="emoji">🚪</span> ออกจากระบบ</div>
   </div>
+
+  <div class="user-box">
+    <div class="user-box-avatar">👤</div>
+    <div style="min-width:0;">
+      <div class="user-box-name" id="user-box-name"></div>
+      <div class="user-box-role" id="user-box-role"></div>
+    </div>
+  </div>
 </div>
 
 <div class="main">
   <div class="topbar">รายชื่อนักเรียน</div>
   <div class="content">
 
-    <!-- Access denied view -->
-    <div class="denied" id="denied-view">
-      <div class="lock-big">🔒</div>
-      <h2>ไม่มีสิทธิ์เข้าถึงหน้านี้</h2>
-      <p>หน้าจัดการข้อมูลนักเรียนใช้ได้เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น</p>
-    </div>
-
-    <!-- Admin management view -->
+    <!-- Management view (admin/sup แก้ไขได้, user ดูอย่างเดียว) -->
     <div class="admin-wrap" id="admin-view">
-      <!-- Left: form -->
-      <div>
+      <!-- Left: form (เฉพาะ admin/sup) -->
+      <div class="staff-only">
         <div class="form-title" id="form-title">เพิ่มนักเรียนใหม่</div>
 
         <div class="field">
@@ -245,6 +279,7 @@
 
       <!-- Right: table -->
       <div>
+        <div class="readonly-banner">👁️ โหมดดูอย่างเดียว — ต้องเข้าสู่ระบบด้วยบัญชีผู้ดูแลจึงจะเพิ่ม แก้ไข หรือลบข้อมูลได้</div>
         <div class="panel-header">
           <h2>รายชื่อนักเรียนทั้งหมด</h2>
           <div class="search-box">
@@ -259,7 +294,7 @@
                 <th>เลขที่</th>
                 <th>เลขประจำตัว</th>
                 <th>ชื่อ-สกุล</th>
-                <th>เบอร์โทร</th>
+                <th class="staff-only">เบอร์โทร</th>
                 <th style="text-align:right;">การจัดการ</th>
               </tr>
             </thead>
@@ -278,9 +313,10 @@
 </div>
 
 <script>
-  // ใช้ supabaseClient ตัวเดียวกับหน้าอื่นๆ ทั้งระบบ (มาจาก supabaseClient.js)
-  // ไม่ต้องสร้าง client ซ้ำที่นี่ เพื่อกันค่า URL/KEY หลุดไม่ตรงกันระหว่างไฟล์
+  // การเชื่อมต่อ Supabase อยู่ใน supabaseClient.js, การตรวจ login อยู่ใน session.js
+  const db = supabaseClient;
 
+  let currentUser = null; // ได้จาก requireLogin()
   let students = [];      // ข้อมูลที่ดึงมาจากตาราง students ใน Supabase
   let editingId = null;   // uuid (คอลัมน์ id) ของแถวที่กำลังแก้ไข อยู่
 
@@ -302,10 +338,13 @@
     const tbody = document.getElementById('table-body');
     tbody.innerHTML = '<tr class="loading-row"><td colspan="5">กำลังโหลดข้อมูล...</td></tr>';
 
-    const { data, error } = await supabaseClient
-      .from('students')
-      .select('id, no, student_id, citizen_id, full_name, nickname, phone')
-      .order('no', { ascending: true });
+    // admin/sup อ่านจากตารางตรง ๆ, user ทั่วไปอ่านผ่านฟังก์ชันที่ไม่ส่งเลขบัตร/เบอร์โทรมา
+    const { data, error } = currentUser.canEdit
+      ? await db
+          .from('students')
+          .select('id, no, student_id, citizen_id, full_name, nickname, phone')
+          .order('no', { ascending: true })
+      : await db.rpc('viewer_students', { p_username: currentUser.username });
 
     if (error) {
       console.error(error);
@@ -339,12 +378,12 @@
             <div class="full-name">${escapeHtml(s.full_name)}</div>
             <div class="nickname">${escapeHtml(s.nickname || '')}</div>
           </td>
-          <td>${escapeHtml(s.phone || '-')}</td>
+          <td class="staff-only">${escapeHtml(s.phone || '-')}</td>
           <td>
             <div class="actions-cell">
-              <button class="icon-btn edit" title="แก้ไข" onclick="editStudent('${s.id}')">✏️</button>
+              <button class="icon-btn edit staff-only" title="แก้ไข" onclick="editStudent('${s.id}')">✏️</button>
               <button class="icon-btn history" title="ประวัติการชำระเงิน" onclick="viewHistory('${s.id}')">🕒</button>
-              <button class="icon-btn delete" title="ลบ" onclick="deleteStudent('${s.id}')">🗑️</button>
+              <button class="icon-btn delete staff-only" title="ลบ" onclick="deleteStudent('${s.id}')">🗑️</button>
             </div>
           </td>
         </tr>
@@ -362,6 +401,7 @@
 
   // ---------- เพิ่ม / แก้ไข ----------
   async function submitForm() {
+    if (!currentUser || !currentUser.canEdit) return;
     const no = document.getElementById('f-no').value.trim();
     const student_id = document.getElementById('f-student-id').value.trim();
     const citizen_id = document.getElementById('f-citizen-id').value.trim();
@@ -394,27 +434,12 @@
           alert('เลขประจำตัวนักเรียนนี้ถูกใช้กับนักเรียนคนอื่นแล้ว');
           return;
         }
-        // .select() ต่อท้ายจำเป็นมาก: ถ้าไม่ใส่ และ RLS บล็อกแถวนี้
-        // Supabase จะไม่คืน error กลับมา แต่จะเงียบๆ ไม่แก้ไขอะไรเลย (0 แถว)
-        const { data, error } = await supabaseClient
-          .from('students')
-          .update(payload)
-          .eq('id', editingId)
-          .select();
+        const { error } = await db.from('students').update(payload).eq('id', editingId);
         if (error) throw error;
-        if (!data || data.length === 0) {
-          throw new Error('ไม่มีสิทธิ์แก้ไขข้อมูลนี้ (ถูกบล็อกโดย RLS policy) หรือไม่พบแถวนี้แล้ว');
-        }
         showToast('บันทึกการแก้ไขเรียบร้อยแล้ว');
       } else {
-        const { data, error } = await supabaseClient
-          .from('students')
-          .insert(payload)
-          .select();
+        const { error } = await db.from('students').insert(payload);
         if (error) throw error;
-        if (!data || data.length === 0) {
-          throw new Error('ไม่มีสิทธิ์เพิ่มข้อมูลนี้ (ถูกบล็อกโดย RLS policy)');
-        }
         showToast('เพิ่มนักเรียนใหม่เรียบร้อยแล้ว');
       }
       resetForm();
@@ -449,23 +474,15 @@
 
   // ---------- ลบ ----------
   async function deleteStudent(id) {
+    if (!currentUser || !currentUser.canEdit) return;
     const s = students.find(s => s.id === id);
     if (!s) return;
     if (!confirm(`ต้องการลบข้อมูลของ "${s.full_name}" ใช่หรือไม่?`)) return;
 
-    const { data, error } = await supabaseClient
-      .from('students')
-      .delete()
-      .eq('id', id)
-      .select();
-
+    const { error } = await db.from('students').delete().eq('id', id);
     if (error) {
       console.error(error);
       showToast('ลบไม่สำเร็จ: ' + error.message, true);
-      return;
-    }
-    if (!data || data.length === 0) {
-      showToast('ไม่มีสิทธิ์ลบข้อมูลนี้ (ถูกบล็อกโดย RLS policy)', true);
       return;
     }
     if (editingId === id) resetForm();
@@ -478,59 +495,17 @@
     alert(`ไปยังหน้า "ประวัติการชำระเงิน" ของ ${s.full_name} (เชื่อมกับเมนูประวัติการชำระเงินด้านซ้าย)`);
   }
 
-  // แก้ path นี้ให้ตรงกับหน้า login จริงของระบบ
-  const LOGIN_PAGE_URL = 'index.html';
-  async function logout() {
-    if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-    await supabaseClient.auth.signOut();
-    window.location.href = LOGIN_PAGE_URL;
-  }
+  // logout() อยู่ใน session.js
 
-  // ---------- Role-based access (ผูกกับ Supabase จริง) ----------
-  function applyRole(role) {
-    const navStudents = document.getElementById('nav-students');
-    const adminView = document.getElementById('admin-view');
-    const deniedView = document.getElementById('denied-view');
+  // ---------- เริ่มต้นหน้า: ตรวจ login แล้วจัดมุมมองตามสิทธิ์ ----------
+  (async function init() {
+    currentUser = await requireLogin();
+    if (!currentUser) return;
 
-    if (role === 'admin') {
-      navStudents.classList.remove('disabled');
-      adminView.style.display = 'grid';
-      deniedView.style.display = 'none';
-      fetchStudents(); // โหลดข้อมูลก็ต่อเมื่อเป็น admin เท่านั้น
-    } else {
-      navStudents.classList.add('disabled');
-      adminView.style.display = 'none';
-      deniedView.style.display = 'block';
-    }
-  }
-
-  // เช็ค session -> ดึง role จริงจากตาราง profiles -> ค่อยเปิด/ปิดหน้า
-  async function checkAccessAndInit() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-
-    if (!session) {
-      // ยังไม่ได้ login เลย เด้งกลับหน้า login ทันที
-      window.location.href = LOGIN_PAGE_URL;
-      return;
-    }
-
-    const { data: profile, error } = await supabaseClient
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
-
-    if (error) {
-      console.error('ดึง role ไม่สำเร็จ:', error);
-      // ดึง role ไม่ได้ ให้ถือว่าไม่มีสิทธิ์ ปลอดภัยไว้ก่อน
-      applyRole('user');
-      return;
-    }
-
-    applyRole(profile.role);
-  }
-
-  checkAccessAndInit();
+    renderUserBox(currentUser);
+    document.getElementById('admin-view').classList.toggle('readonly', !currentUser.canEdit);
+    await fetchStudents();
+  })();
 </script>
 
 </body>
